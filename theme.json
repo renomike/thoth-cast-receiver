@@ -1,0 +1,27 @@
+        {
+          "generatedBy": "CastThemeExportTest",
+          "background": "#1C1611",
+          "surface": "#2A221B",
+          "text": "#F3EAD3",
+          "muted": "#BFAF90",
+          "gold": "#E3B955",
+          "patterns": ["SOLID", "STRIPES_VERTICAL", "STRIPES_DIAGONAL", "DOTS", "CHECKS", "CHEVRONS", "WAVES", "HALF"],
+          "colors": {
+            "pink": { "tone": "#FC4E8F", "on": "#000000", "shade": "#FD95BC" },
+"crimson": { "tone": "#92605E", "on": "#FFFFFF", "shade": "#583A38" },
+"clay": { "tone": "#F98D84", "on": "#000000", "shade": "#FBBBB5" },
+"terracotta": { "tone": "#FF7803", "on": "#000000", "shade": "#FFAE68" },
+"ochre": { "tone": "#E39E54", "on": "#000000", "shade": "#EEC598" },
+"olive": { "tone": "#BDA90F", "on": "#000000", "shade": "#D7CB6F" },
+"moss": { "tone": "#ACB18C", "on": "#000000", "shade": "#CDD0BA" },
+"emerald": { "tone": "#20BE5F", "on": "#000000", "shade": "#79D89F" },
+"forest": { "tone": "#257C50", "on": "#FFFFFF", "shade": "#164A30" },
+"teal": { "tone": "#00B7C3", "on": "#000000", "shade": "#66D4DB" },
+"azure": { "tone": "#00A5FD", "on": "#000000", "shade": "#66C9FE" },
+"lapis": { "tone": "#94B0D4", "on": "#000000", "shade": "#BFD0E5" },
+"indigo": { "tone": "#7362BD", "on": "#FFFFFF", "shade": "#453B71" },
+"plum": { "tone": "#D19BDC", "on": "#000000", "shade": "#E3C3EA" },
+"orchid": { "tone": "#D372E6", "on": "#000000", "shade": "#E5AAF0" },
+"magenta": { "tone": "#AB4988", "on": "#FFFFFF", "shade": "#672C52" }
+          }
+        }

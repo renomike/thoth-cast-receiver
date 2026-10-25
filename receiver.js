@@ -2,61 +2,20 @@
   Thoth Cast receiver - the Cast side.
 
   Starts the CAF receiver context, registers the custom namespace, and hands every message
-  to Messages, which is the same module the desktop replay harness drives. What arrives is
-  reported on the state panel; the board itself is Phase 8c, and nothing here draws one yet.
+  to Messages, which draws the board through Board. Both are shared with the desktop replay
+  harness, so what the harness proves is what the TV does.
 
-  ES2015 is allowed (Chrome 70 on the device, measured in 8a); stress.js stays as it is,
-  since it is ES5 and already proved on the dongle.
+  The board is still: rank slides, count-ups and the lead-change celebration are Phase 8d.
 */
 
 (function () {
   'use strict';
 
-  const VERSION = 'v0.2';
+  const VERSION = 'v0.3';
   const NAMESPACE = 'urn:x-cast:io.github.renomike.scores';
 
   let senders = 0;
-  let received = 0;
-
-  function set(id, text, cls) {
-    const node = document.getElementById(id);
-    if (!node) return;
-    node.firstChild.nodeValue = text;
-    if (cls !== undefined) node.className = 'v ' + cls;
-  }
-
-  /*
-    The user agent is on screen on purpose: it is the only evidence of which Chromecast
-    loaded the page and how old its browser is, and the whole motion budget is set from it
-    (SRD Phase 8, "The browser is Chrome 70").
-  */
-  function describeDevice() {
-    set('dUa', navigator.userAgent || 'unknown');
-    set('dScreen', window.innerWidth + ' x ' + window.innerHeight
-      + ' css px, dpr ' + (window.devicePixelRatio || 1));
-  }
-
-  const messages = Messages.create({
-    onState: function (state, events, sequence) {
-      received++;
-      set('cMessages', String(received));
-      set('cSequence', String(sequence));
-      set('cBoard', state.competitors.length + ' rows, round ' + state.round
-        + ', ' + state.status);
-      set('cEvents', events.length === 0
-        ? 'none (full state)'
-        : events.map(function (e) { return e.type; }).join(', '));
-      const counts = messages.counts();
-      set('cDropped', counts.ignored + ' out of order, ' + counts.rejected + ' rejected');
-    },
-    onThumbnail: function () {
-      set('cThumbs', String(messages.thumbnailCount()));
-    },
-    onUnsupported: function (version) {
-      set('cSchema', 'sender sent v' + version + ', this page speaks v'
-        + Messages.SCHEMA_VERSION, 'bad');
-    }
-  });
+  let boot = null;
 
   function onMessage(event) {
     let payload = event.data;
@@ -64,21 +23,23 @@
       try {
         payload = JSON.parse(payload);
       } catch (e) {
-        set('cDropped', 'unparseable message', 'bad');
+        if (boot.debug) Boot.set('cDropped', 'unparseable message', 'bad');
         return;
       }
     }
-    messages.accept(payload);
+    boot.messages.accept(payload);
   }
 
   function startReceiver() {
     if (typeof cast === 'undefined' || !cast.framework) {
-      /* An ordinary browser, or the gstatic script did not load. stress.html runs here. */
-      set('cSdk', 'not loaded (not in a Cast session)', 'warn');
-      set('cState', 'standalone', 'warn');
+      /* An ordinary browser, or the gstatic script did not load. */
+      if (boot.debug) {
+        Boot.set('cSdk', 'not loaded (not in a Cast session)', 'warn');
+        Boot.set('cState', 'standalone', 'warn');
+      }
       return;
     }
-    set('cSdk', 'loaded', 'ok');
+    if (boot.debug) Boot.set('cSdk', 'loaded', 'ok');
 
     const context = cast.framework.CastReceiverContext.getInstance();
     const options = new cast.framework.CastReceiverOptions();
@@ -96,58 +57,54 @@
 
     const sys = cast.framework.system.EventType;
     context.addEventListener(sys.READY, function () {
-      set('cState', 'ready', 'ok');
+      if (boot.debug) Boot.set('cState', 'ready', 'ok');
     });
     context.addEventListener(sys.SENDER_CONNECTED, function (e) {
       senders++;
-      set('cSenders', String(senders));
-      set('cLastSender', (e && e.senderId) ? e.senderId : '-');
+      if (boot.debug) {
+        Boot.set('cSenders', String(senders));
+        Boot.set('cLastSender', (e && e.senderId) ? e.senderId : '-');
+      }
     });
     context.addEventListener(sys.SENDER_DISCONNECTED, function (e) {
       senders = Math.max(0, senders - 1);
-      set('cSenders', String(senders));
-      set('cLastSender', (e && e.senderId ? e.senderId : '-') + ' (gone)');
+      if (boot.debug) {
+        Boot.set('cSenders', String(senders));
+        Boot.set('cLastSender', (e && e.senderId ? e.senderId : '-') + ' (gone)');
+      }
     });
     context.addEventListener(sys.SHUTDOWN, function () {
-      set('cState', 'shutdown', 'bad');
+      if (boot.debug) Boot.set('cState', 'shutdown', 'bad');
     });
 
     context.start(options);
-    set('cState', 'started', 'ok');
-    set('cNamespace', NAMESPACE);
+    if (boot.debug) {
+      Boot.set('cState', 'started', 'ok');
+      Boot.set('cNamespace', NAMESPACE);
+    }
   }
 
   function main() {
-    const jank = Debug.enabled();
-    Layout.render(document.body, { jank: jank });
-    const subtitle = document.getElementById('subtitle');
-    if (subtitle) {
-      subtitle.innerHTML = '<span id="vVersion">' + VERSION + '</span> &middot; payload v'
-        + Messages.SCHEMA_VERSION + (jank ? ' &middot; frame times on' : '');
-    }
-    set('cSchema', 'v' + Messages.SCHEMA_VERSION, 'ok');
-    describeDevice();
+    boot = Boot.start({});
 
     /*
-      The motion stress loop is not what this page is for any more: from 8b index.html is
-      the receiver, and the board it will draw is Phase 8c. The loop still runs behind the
-      debug switch, because the Chromecast loads only the URL registered in the Cast console
-      and that is the one route to a motion measurement on the TV (see README).
+      Until the first message arrives there is nothing to draw. The name says which app the
+      TV is showing rather than leaving a black screen, which is also how Mike can tell the
+      receiver loaded at all.
     */
-    if (jank) {
-      Stress.start();
-      set('sBudget', Stress.budget.rows + ' rows, ' + Stress.budget.confetti
-        + ' confetti, motion ends at ' + Stress.budget.motionEndMs + ' ms');
-    } else {
-      set('sBudget', 'stress loop off (add ?debug=1 to run it)');
-    }
+    const gameName = document.getElementById('bgame');
+    if (gameName) gameName.textContent = 'Thoth · ' + VERSION;
+    const round = document.getElementById('bround');
+    if (round) round.textContent = 'waiting for the phone';
 
     /* The context is started after the page is drawn, so a failure in the Cast SDK still
        leaves a readable screen on the TV rather than a blank one. */
     try {
       startReceiver();
     } catch (e) {
-      set('cState', 'error: ' + (e && e.message ? e.message : e), 'bad');
+      if (boot.debug) {
+        Boot.set('cState', 'error: ' + (e && e.message ? e.message : e), 'bad');
+      }
     }
   }
 

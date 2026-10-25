@@ -21,8 +21,10 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #0e1420;
-  color: #f3ead6;
+  /* The night theme's own background and text (PlayerPalette.NIGHT_BACKGROUND, NightText).
+     The scoreboard is always dark (NFR-05, SRD 8.1). */
+  background: #1C1611;
+  color: #F3EAD3;
   /* Self-hosted only: no web font is loaded. These are the fonts already on
      the device, so nothing is fetched and nothing can fail to arrive. */
   font-family: Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -68,23 +70,24 @@ body {
   left: 5%;
   top: 5%;
   width: 90%;
-  height: 11%;
+  height: 9%;
   display: -webkit-flex;
   display: flex;
   -webkit-align-items: baseline;
   align-items: baseline;
 }
 
+/* Kept for stress.html, which still draws its own title into #head. */
 #title {
   font-size: calc(4.2 * var(--vh));
   font-weight: 700;
-  color: #e8c477;
+  color: #E3B955;
   letter-spacing: 0.02em;
 }
 
 #subtitle {
   font-size: calc(2.2 * var(--vh));
-  color: #8fa6c4;
+  color: #BFAF90;
   margin-left: calc(1.4 * var(--vw));
 }
 
@@ -167,12 +170,32 @@ body {
 
 /* ---- the stress board ------------------------------------------------ */
 
+/*
+  The board fills the title-safe area. With the development panels up (?debug=1) it gives
+  them the right-hand side; on the TV it has the frame to itself, which is what the 7%
+  totals and twelve rows are sized against.
+*/
 #board {
   position: absolute;
   left: 5%;
-  top: 17%;
+  /*
+    Up from 17%: the header band was mostly empty and the rows needed the height. 50 px of
+    digit is 6.94% of the frame, under the SRD's 7% floor, and the only way past it is a
+    taller row (the measurement is in docs/screenshots/phase-8c).
+  */
+  top: 14%;
+  width: 90%;
+  /*
+    80%, not 81%: at 81% six rows of a 91 px total came to a few pixels more than the box
+    and the bottom row crossed the title-safe line, which is the one line on this page that
+    must hold. overflow:hidden is the guard - a row may be squeezed, never spilled.
+  */
+  height: 80%;
+  overflow: hidden;
+}
+
+#frame.debug #board {
   width: 48%;
-  height: 78%;
 }
 
 .row {

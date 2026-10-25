@@ -4,10 +4,11 @@ The Google Cast **custom web receiver** for *Thoth — Keeper of Scores*. It is 
 page the Chromecast loads so the TV can show the live scoreboard while the phone
 stays on score entry (SRD D-006 step 2, Phase 8).
 
-This is **v0.2, Phase 8b**. It starts the receiver context, registers the custom
+This is **v0.3, Phase 8c**. It starts the receiver context, registers the custom
 namespace, applies the payload rules — schema version checked, out-of-order
-messages dropped, thumbnails cached by player id — and puts what arrived on
-screen. It does **not** draw a scoreboard yet: that is Phase 8c.
+messages dropped, each event id played once, thumbnails cached by player id — and
+draws the **still scoreboard**. There is no animation yet: rank slides, count-ups
+and the lead-change celebration are Phase 8d.
 
 The receiver never works out what changed. The phone detects every event against
 the last state it *sent* and puts them in the message; a second detector here, in
@@ -23,13 +24,18 @@ no game data, and nothing is ever sent to it except the page request itself
 | File | What it is |
 |---|---|
 | `index.html` | The receiver page. **This is the URL registered in the Cast console.** |
-| `receiver.js` | Starts `CastReceiverContext`, registers the namespace, reports state. |
-| `messages.js` | The payload rules: schema check, out-of-order drop, thumbnail cache. Shared by the TV and the harness. |
+| `receiver.js` | Starts `CastReceiverContext`, registers the namespace, feeds `messages.js`. |
+| `boot.js` | What every page does: load the theme, lay out, wire messages to the board. |
+| `board.js`, `board.css` | The still scoreboard. Sizes are a share of the 720 px frame. |
+| `messages.js` | The payload rules: schema check, out-of-order drop, event id played once, thumbnail cache. Shared by the TV and the harness. |
 | `layout.js` | The markup, shared by every page so they cannot drift apart. |
-| `debug.js` | The switch for the frame-time readout. Off unless asked for. |
-| `style.css` | All styling, in frame-relative units so one sheet serves the TV and the harness. |
+| `debug.js` | The switch for the development panels. Off unless asked for. |
+| `style.css` | The frame, the title-safe guide and the development panels. |
 | `replay.html`, `replay.js`, `replay.css` | The desktop replay harness. |
-| `feed.json` | A recorded feed of real messages. Produced by the app, not written by hand. |
+| `frame.html`, `frame.js` | One named board at 1280 x 720, for the phase frames. |
+| `theme.json` | The night palette. **Generated from `PlayerPalette`, not written by hand.** |
+| `frames.json` | The named boards the phase frames are drawn from. Generated. |
+| `feed.json` | A recorded feed of real messages. Generated. |
 | `stress.html`, `stress-page.js`, `stress.js` | The motion stress loop, kept from 8a. |
 
 Everything except Google's `cast_receiver_framework.js` is served from here.
@@ -45,17 +51,36 @@ already proved on the dongle and rewriting working code buys nothing.
 
 ## What is on screen
 
-`index.html`, on the TV:
+`index.html`, on the TV, once the phone has sent a board:
 
-- **Right, top:** receiver state - whether the Cast SDK loaded, the context, the namespace,
-  connected senders, how many state messages arrived and the latest sequence number, the
-  board's size and round, the events in the last message, how many thumbnails are cached,
-  and how many messages were dropped as out of order or refused. Below it the **user agent**
-  and viewport, which is how the Chromecast model and the age of its browser get recorded.
-- **Left:** empty in 8b. Drawing the board is Phase 8c.
+- The **game's name** and the round, inside the title-safe margin.
+- One row per competitor: **place, avatars, name, how far behind, total**. The total is
+  measured before the name, so a long name is what gives way and the total never loses a
+  digit to it.
+- **One column up to six competitors, two columns of six from seven**, as on the phone.
+- **Totals at 12.6% of the frame in font size**, which draws a digit **52 px tall - 7.2% of
+  the 720 px frame**, measured off the rendered frames in `docs/screenshots/phase-8c` of the
+  app repo. A font size is not a digit height: this face inks its digits to about 0.59 of
+  the font size, so the SRD's 7% (about 50 px) floor for 20 feet needs about 12.6%, not 7%.
+- A team's avatars **overlap inside a ring in the team's own colour**, with `+n` for the
+  members not drawn. Rank is never colour alone: the place is a numeral, and every avatar
+  carries its **pattern marker** as well as its colour (NFR-04).
+- **Photos** when they have arrived, **initials** until then and if they never do. The
+  initials' colour and the pattern's shade come from the palette, not from a guess here, so
+  a pattern can only improve the initials' contrast.
 - A dashed rectangle marks the **5% title-safe margin**. If its edges are off the screen,
   the TV is overscanning.
-- **The frame-time readout is off by default** from 8b. See below.
+- Before the first message it reads "Thoth - v0.3 / waiting for the phone", so a blank
+  screen always means something is wrong.
+
+With `?debug=1` the board narrows and a **receiver-state panel** appears beside it: the Cast
+SDK, the context, the namespace, senders, the message count and latest sequence, the board's
+size and round, the events in the last message **with their ids**, how many thumbnails are
+cached, and how many messages were dropped as out of order, refused, or **skipped because
+their event ids had already been played**. Below it the user agent and viewport, which is
+how the Chromecast model and the age of its browser get recorded.
+
+**No animation yet.** Rank slides, count-ups and the lead-change celebration are Phase 8d.
 
 ## The replay harness
 
@@ -98,8 +123,10 @@ copy app\build\reports\cast-feed.json ..\thoth-cast-receiver\feed.json
 Off by default from 8b. It costs frames on the 2013 Chromecast - 8a's own measurement was
 taken with it on screen - so leaving it up would make every later measurement pessimistic.
 
-- On a desktop: add `?debug=1`, for example `replay.html?debug=1`.
-- `stress.html` always shows it; measuring the motion is that page's whole purpose.
+- On a desktop: add `?debug=1`, for example `replay.html?debug=1`. It also turns on the
+  receiver-state panel, which is a development read-out rather than part of the board — with
+  it off, the board has the whole frame, which is what the 7% totals are sized against.
+- `stress.html` always shows the frame times; measuring the motion is that page's purpose.
 
 ### Turning the readout on for a TV measurement
 

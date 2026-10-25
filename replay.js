@@ -26,6 +26,7 @@
   let timer = null;
   let speed = 1;
   let messages = null;
+  let boot = null;
 
   function set(id, text, cls) {
     const node = document.getElementById(id);
@@ -98,6 +99,7 @@
     pause();
     cursor = 0;
     messages.reset();
+    Board.draw({ competitors: [], decimalPlaces: 0, round: 0, status: 'ACTIVE' });
     set('rCursor', '0 / ' + (feed ? feed.messages.length : 0));
     set('cMessages', '0');
     set('cSequence', '-');
@@ -110,16 +112,44 @@
   }
 
   /*
-    Replays the message just before the cursor a second time. The receiver must ignore it:
-    its sequence is no longer ahead of the highest drawn, so a lead change cannot be
-    celebrated twice (SRD Phase 8, Gap 2). This is the one-click check of that rule.
+    Replays the message just before the cursor, unchanged. Its sequence is no longer ahead
+    of the highest drawn, so the receiver must ignore it outright (SRD Phase 8, Gap 2).
   */
-  function resend() {
+  function resendSame() {
     if (!feed || cursor === 0) return;
     const message = feed.messages[cursor - 1];
     const outcome = messages.accept(message);
-    log('resend seq ' + message.sequence + '  -> ' + outcome
+    log('resend same seq ' + message.sequence + '  -> ' + outcome
       + (outcome === 'ignored' ? '  (correct)' : '  (SHOULD HAVE BEEN IGNORED)'));
+  }
+
+  /*
+    The case 8b closing item 1a exists for, and the reason event ids are on the wire at all.
+
+    The phone's send failed, so it kept those events and put them in the NEXT message under
+    the same ids - but the failed send had in fact arrived. The receiver sees a state it has
+    not drawn, carrying events it has already played. It must draw the board and play
+    **none** of them, or the TV celebrates one lead change twice.
+
+    Simulated by resending the last message with a fresh sequence and its event ids left
+    alone, which is exactly the shape that arrives.
+  */
+  function resendAsNewState() {
+    if (!feed || cursor === 0) return;
+    const original = feed.messages[cursor - 1];
+    if (!original.events || original.events.length === 0) {
+      log('resend as new state: that message carried no events - step on first');
+      return;
+    }
+    const clone = JSON.parse(JSON.stringify(original));
+    clone.sequence = messages.lastSequence() + 1;
+    const before = messages.counts().played;
+    const outcome = messages.accept(clone);
+    const played = messages.counts().played - before;
+    log('resend as seq ' + clone.sequence + ' with ids '
+      + original.events.map(function (e) { return e.id; }).join(',')
+      + '  -> ' + outcome + ', ' + played + ' events played'
+      + (played === 0 ? '  (correct)' : '  (SHOULD HAVE PLAYED NONE)'));
   }
 
   /*
@@ -147,7 +177,8 @@
     bar.appendChild(control('Pause', pause));
     bar.appendChild(control('Step', function () { pause(); step(); }));
     bar.appendChild(control('Restart', restart));
-    bar.appendChild(control('Resend last', resend));
+    bar.appendChild(control('Resend same', resendSame));
+    bar.appendChild(control('Resend as new state', resendAsNewState));
     bar.appendChild(control('Reconnect', reconnect));
     [0.5, 1, 2, 4].forEach(function (rate) {
       bar.appendChild(control(rate + 'x', function () {
@@ -162,46 +193,16 @@
     });
   }
 
-  function wireReceiverPanel() {
-    messages = Messages.create({
-      onState: function (state, events, sequence) {
-        const counts = messages.counts();
-        set('cMessages', String(counts.state));
-        set('cSequence', String(sequence));
-        set('cBoard', state.competitors.length + ' rows, round ' + state.round
-          + ', ' + state.status);
-        set('cEvents', events.length === 0
-          ? 'none (full state)'
-          : events.map(function (e) { return e.type; }).join(', '));
-        set('cDropped', counts.ignored + ' out of order, ' + counts.rejected + ' rejected');
-      },
-      onThumbnail: function () {
-        set('cThumbs', String(messages.thumbnailCount()));
-      },
-      onUnsupported: function (version) {
-        set('cSchema', 'feed is v' + version + ', this page speaks v'
-          + Messages.SCHEMA_VERSION, 'bad');
-      }
-    });
-  }
-
   function main() {
-    const frame = document.getElementById('castFrame');
-    Layout.render(frame, { jank: Debug.enabled() });
-    const subtitle = document.getElementById('subtitle');
-    if (subtitle) {
-      subtitle.innerHTML = 'replay harness &middot; payload v' + Messages.SCHEMA_VERSION
-        + ' &middot; 1280 x 720';
+    boot = Boot.start({ root: document.getElementById('castFrame') });
+    messages = boot.messages;
+    if (boot.debug) {
+      set('cSdk', 'replay harness (no Cast SDK)', 'warn');
+      set('cState', 'driven from feed.json', 'warn');
+      set('cNamespace', 'urn:x-cast:io.github.renomike.scores');
+      set('dScreen', WIDTH + ' x ' + HEIGHT + ' css px, dpr 1 (the Chromecast’s own)');
     }
-    set('cSdk', 'replay harness (no Cast SDK)', 'warn');
-    set('cState', 'driven from feed.json', 'warn');
-    set('cNamespace', 'urn:x-cast:io.github.renomike.scores');
-    set('cSchema', 'v' + Messages.SCHEMA_VERSION, 'ok');
-    set('dScreen', WIDTH + ' x ' + HEIGHT + ' css px, dpr 1 (the Chromecast’s own)');
-    set('dUa', navigator.userAgent || 'unknown');
-    set('sBudget', 'board drawing is Phase 8c');
 
-    wireReceiverPanel();
     buildControls();
     fit();
     window.addEventListener('resize', fit);

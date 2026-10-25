@@ -1,0 +1,175 @@
+/*
+  The still scoreboard's layout (Thoth SRD Phase 8c).
+
+  Every size that matters is set from JS as a share of the 720 px frame, because the floor
+  the SRD sets is a share of the frame height ("totals at least 7%, about 50 px"). What is
+  here is the arrangement, the colours and the one rule that makes the layout work: the
+  total is measured before the name, so a long name is what gives way.
+
+  CSS custom properties are allowed from 8b (the device is Chrome 70).
+*/
+
+.bboard {
+  display: flex;
+  flex-direction: row;
+  /* 2.5% of the frame, the same air the columns get from each other on the phone. */
+  gap: calc(2.5 * var(--vw));
+}
+
+.bcol {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: calc(0.6 * var(--vh));
+}
+
+.brow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+  background: #2A221B;
+  border-radius: calc(0.8 * var(--vh));
+  padding: 0 calc(1 * var(--vw));
+}
+
+.brank {
+  width: var(--rank-w, 4.5%);
+  flex: 0 0 auto;
+  text-align: right;
+  font-weight: 700;
+  color: #BFAF90;
+  /* NFR-04: the place is a numeral. Gold marks the leader as well, but the number is what
+     carries it, so a colour-blind viewer loses nothing. */
+}
+
+.brank.bleader {
+  color: #E3B955;
+}
+
+.bavatars {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-left: calc(0.8 * var(--vw));
+  /* The ring is drawn even when transparent, so a team and a single player line up. */
+  border: 2px solid transparent;
+  border-radius: 999px;
+  padding: 2px;
+}
+
+.bavatars.bteam {
+  /* The team's own colour, set from JS. The ring is what groups them - not colour alone,
+     since the ring is a shape (Phase 7a, NFR-04). */
+  padding: 3px;
+}
+
+.bavatars.bteam .bavatar:not(:first-child) {
+  /* Overlapping, as on the phone: a quarter of an avatar back. */
+  margin-left: -0.25em;
+}
+
+/*
+  "+n" for the members not drawn. It needs its own air: without the margin it sat on top of
+  the last avatar and the team of five read as one run of letters (seen in the teams frame).
+*/
+.bmore {
+  flex: 0 0 auto;
+  margin-left: calc(0.4 * var(--vw));
+  color: #BFAF90;
+  white-space: nowrap;
+}
+
+.bavatar {
+  position: relative;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 1px rgba(28, 22, 17, 0.9);
+}
+
+.bphoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/*
+  Colour comes from the palette, set inline per avatar: white unless the tone is too light
+  for it. Hard-coding near-black here failed NFR-04 on the darker tones (8c, first draft).
+*/
+.binitials {
+  font-weight: 700;
+  font-size: 0.5em;
+  z-index: 1;
+}
+
+/* The pattern marker sits over the tone and under nothing: initials are above it. */
+.bavatar .pat {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.bname {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0 calc(0.8 * var(--vw));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #F3EAD3;
+}
+
+.bgap {
+  flex: 0 0 auto;
+  text-align: right;
+  color: #BFAF90;
+  white-space: nowrap;
+  margin-right: calc(0.9 * var(--vw));
+}
+
+/*
+  Measured before the name (Phase 7 layout (d)). `flex: 0 0 auto` with the name on
+  `flex: 1 1 auto` is what makes the name give way and the total keep every digit.
+*/
+.btotal {
+  flex: 0 0 auto;
+  font-weight: 700;
+  font-family: "Roboto Mono", Consolas, monospace;
+  color: #F3EAD3;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* ---- the board header ------------------------------------------------ */
+
+#bhead {
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+}
+
+#bgame {
+  font-size: calc(4 * var(--vh));
+  font-weight: 700;
+  color: #E3B955;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#bround {
+  margin-left: calc(1.4 * var(--vw));
+  font-size: calc(2.4 * var(--vh));
+  color: #BFAF90;
+  white-space: nowrap;
+}

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Thoth receiver - one frame</title>
+<!--
+  Renders exactly one named board from frames.json at 1280 x 720 and nothing else: no
+  controls, no development panel, no scaling. This is what the phase frames are taken from,
+  so the screenshot is the real receiver drawing a real ScoreboardState.
+
+    frame.html?name=twelve
+    frame.html?name=photo&debug=1     (with the development panels up)
+
+  Serve the folder over HTTP; file:// blocks the fetch.
+-->
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="board.css">
+<style>
+  /* Fixed at the Chromecast's own viewport. The window is sized to match, so there is no
+     scaling to argue about when a digit's height is measured off the pixels. */
+  html, body { width: 1280px; height: 720px; overflow: hidden; }
+</style>
+</head>
+<body>
+<script src="debug.js"></script>
+<script src="layout.js"></script>
+<script src="messages.js"></script>
+<script src="board.js"></script>
+<script src="boot.js"></script>
+<script src="frame.js"></script>
+</body>
+</html>
