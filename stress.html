@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Thoth receiver v0 - motion stress</title>
+<!--
+  index.html minus the one gstatic script, so the same motion loop and the same
+  frame-time readout can be driven in an ordinary desktop browser with no Cast
+  device present. receiver.js detects the missing SDK and reports "standalone".
+
+  Open this at a 16:9 window size to judge the layout; the numbers it prints say
+  nothing about the Chromecast, which is far slower. Only index.html on the TV
+  answers that.
+-->
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script src="layout.js"></script>
+<script src="stress.js"></script>
+<script src="receiver.js"></script>
+</body>
+</html>

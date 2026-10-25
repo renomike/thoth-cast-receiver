@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Thoth receiver v0</title>
+<!--
+  The one file loaded from outside this repository: Google requires the CAF
+  receiver framework to be served from gstatic and forbids self-hosting it.
+  Everything else - CSS and JS - is served from this repository, and no web font
+  is loaded at all; the page uses the fonts already on the device (SRD Phase 8,
+  "Hosting").
+-->
+<script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script src="layout.js"></script>
+<script src="stress.js"></script>
+<script src="receiver.js"></script>
+</body>
+</html>

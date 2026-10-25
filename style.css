@@ -1,0 +1,256 @@
+/*
+  Thoth Cast receiver v0 - Phase 8a skeleton.
+
+  Written for the 2013 Chromecast (H2G2-42), whose browser engine is roughly
+  Chrome 31. That rules out CSS custom properties (Chrome 49+), so every colour
+  is written out. Flexbox, calc() and unprefixed transforms are all old enough.
+
+  Motion rule (SRD Phase 8, "The device"): transforms and opacity only. Nothing
+  here animates width, height, top, left, margin or colour.
+*/
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0e1420;
+  color: #f3ead6;
+  /* Self-hosted only: no web font is loaded. These are the fonts already on
+     the device, so nothing is fetched and nothing can fail to arrive. */
+  font-family: Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* 5% title-safe margin on all four sides (SRD Phase 8, legibility). The guide
+   is drawn so overscan on Mike's Samsung can be judged by eye. */
+#frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#safe {
+  position: absolute;
+  left: 5%;
+  top: 5%;
+  width: 90%;
+  height: 90%;
+  border: 1px dashed rgba(243, 234, 214, 0.18);
+}
+
+/* ---- header ---------------------------------------------------------- */
+
+#head {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 11%;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: baseline;
+  align-items: baseline;
+}
+
+#title {
+  font-size: 4.2vh;
+  font-weight: 700;
+  color: #e8c477;
+  letter-spacing: 0.02em;
+}
+
+#subtitle {
+  font-size: 2.2vh;
+  color: #8fa6c4;
+  margin-left: 1.4vw;
+}
+
+/* ---- the state panel ------------------------------------------------- */
+
+#state {
+  position: absolute;
+  right: 0;
+  top: 12%;
+  width: 31%;
+  font-size: 1.9vh;
+  line-height: 1.55;
+  color: #cfe0f2;
+}
+
+#state h2 {
+  font-size: 2.1vh;
+  font-weight: 700;
+  color: #e8c477;
+  margin-bottom: 0.6vh;
+}
+
+.kv {
+  display: -webkit-flex;
+  display: flex;
+}
+
+.kv .k {
+  width: 46%;
+  color: #8fa6c4;
+}
+
+.kv .v {
+  width: 54%;
+  font-family: "Roboto Mono", Consolas, monospace;
+  word-break: break-all;
+}
+
+.ok {
+  color: #8fd4a0;
+}
+
+.warn {
+  color: #e8a05a;
+}
+
+.bad {
+  color: #e87d7d;
+}
+
+/* ---- the jank readout ------------------------------------------------ */
+
+#jank {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 31%;
+  font-size: 1.9vh;
+  line-height: 1.5;
+  color: #cfe0f2;
+}
+
+#jank h2 {
+  font-size: 2.1vh;
+  font-weight: 700;
+  color: #e8c477;
+  margin-bottom: 0.6vh;
+}
+
+#verdict {
+  margin-top: 0.8vh;
+  font-size: 2.3vh;
+  font-weight: 700;
+}
+
+/* ---- the stress board ------------------------------------------------ */
+
+#board {
+  position: absolute;
+  left: 0;
+  top: 12%;
+  width: 64%;
+  height: 88%;
+}
+
+.row {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 14.5%;
+  /* Only transform and opacity are animated. The 200ms step is deliberately
+     short; the 600ms slide is set from JS so the budget is visible in one place. */
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.rowInner {
+  position: absolute;
+  left: 0;
+  top: 6%;
+  width: 100%;
+  height: 88%;
+  background: #182133;
+  border-radius: 0.8vh;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+}
+
+.rank {
+  width: 7%;
+  text-align: center;
+  font-size: 3.4vh;
+  font-weight: 700;
+  color: #8fa6c4;
+}
+
+.chip {
+  width: 7.5vh;
+  height: 7.5vh;
+  border-radius: 50%;
+  margin: 0 1.2vw 0 0.6vw;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  font-size: 3.2vh;
+  font-weight: 700;
+  color: #0e1420;
+}
+
+.name {
+  -webkit-flex: 1;
+  flex: 1;
+  font-size: 4vh;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* 7% of frame height for totals - the SRD's target for 20 feet. */
+.total {
+  width: 30%;
+  text-align: right;
+  padding-right: 1.6vw;
+  font-size: 7vh;
+  font-weight: 700;
+  font-family: "Roboto Mono", Consolas, monospace;
+  color: #f3ead6;
+}
+
+.crown {
+  position: absolute;
+  left: 0.4vw;
+  top: 0;
+  font-size: 3vh;
+  opacity: 0;
+}
+
+/* ---- confetti -------------------------------------------------------- */
+
+#confetti {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.piece {
+  position: absolute;
+  width: 1.4vh;
+  height: 1.4vh;
+  opacity: 0;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform, opacity;
+}
