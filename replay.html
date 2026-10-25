@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Thoth receiver - replay harness</title>
+<!--
+  Drives the receiver from feed.json, recorded by the app's own CastFeedRecordingTest from
+  the real sender, with no Chromecast and no phone. The Cast SDK is deliberately not loaded;
+  everything goes through the same messages.js the TV uses.
+
+  Serve this folder over HTTP - file:// blocks the fetch of feed.json.
+-->
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="replay.css">
+</head>
+<body class="replay">
+
+<div id="stage">
+  <!-- The Chromecast's own viewport, scaled to the window rather than reflowed. -->
+  <div id="castFrame"></div>
+</div>
+
+<div id="panel">
+  <div id="replayBar"></div>
+  <div class="kv"><div class="k">Feed</div><div class="v" id="rFeed">loading&#8230;</div></div>
+  <div class="kv"><div class="k">Position</div><div class="v" id="rCursor">-</div></div>
+  <div class="kv"><div class="k">Frame</div><div class="v" id="rScale">-</div></div>
+  <div class="kv"><div class="k">Status</div><div class="v" id="replayStatus">starting</div></div>
+  <div id="replayLog"></div>
+</div>
+
+<script src="debug.js"></script>
+<script src="layout.js"></script>
+<script src="messages.js"></script>
+<script src="replay.js"></script>
+</body>
+</html>

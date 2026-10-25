@@ -14,7 +14,13 @@ var Layout = (function () {
       + '</div><div class="v" id="' + id + '">' + initial + '</div></div>';
   }
 
-  function render(root) {
+  /*
+    [options.jank] draws the frame-time panel. Off unless asked for: from 8b the readout is
+    behind Debug's switch, because it costs frames on the 2013 Chromecast and every later
+    measurement would be pessimistic with it on screen.
+  */
+  function render(root, options) {
+    var opts = options || {};
     root.innerHTML =
       '<div id="frame">'
       + '<div id="safe"></div>'
@@ -36,23 +42,30 @@ var Layout = (function () {
       + kv('Senders', 'cSenders', '0')
       + kv('Last sender', 'cLastSender', '-')
       + kv('Messages', 'cMessages', '0')
-      + kv('Last message', 'cLast', '-')
+      + kv('Schema', 'cSchema', '-')
+      + kv('Sequence', 'cSequence', '-')
+      + kv('Board', 'cBoard', '-')
+      + kv('Events', 'cEvents', '-')
+      + kv('Thumbnails', 'cThumbs', '0')
+      + kv('Dropped', 'cDropped', '-')
       + '<h2 style="margin-top:1.6vh">Device</h2>'
       + kv('Viewport', 'dScreen', '-')
       + kv('User agent', 'dUa', '-')
       + kv('Motion budget', 'sBudget', '-')
       + '</div>'
 
-      + '<div id="jank">'
-      + '<h2>Frame times (motion window only)</h2>'
-      + kv('Last cycle', 'jFps', '-')
-      + kv('Worst frame', 'jWorst', '-')
-      + kv('&gt;33ms / &gt;50ms', 'jDropped', '-')
-      + kv('Frames', 'jFrames', '-')
-      + kv('Cycle', 'jCycle', '-')
-      + kv('Worst seen', 'jWorstEver', '-')
-      + '<div id="verdict">-</div>'
-      + '</div>'
+      + (opts.jank
+        ? '<div id="jank">'
+          + '<h2>Frame times (motion window only)</h2>'
+          + kv('Last cycle', 'jFps', '-')
+          + kv('Worst frame', 'jWorst', '-')
+          + kv('&gt;33ms / &gt;50ms', 'jDropped', '-')
+          + kv('Frames', 'jFrames', '-')
+          + kv('Cycle', 'jCycle', '-')
+          + kv('Worst seen', 'jWorstEver', '-')
+          + '<div id="verdict">-</div>'
+          + '</div>'
+        : '')
 
       + '</div>';
   }

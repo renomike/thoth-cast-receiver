@@ -1,78 +1,91 @@
 /*
-  Thoth Cast receiver v0 - Phase 8a skeleton.
+  Thoth Cast receiver - the Cast side.
 
-  This is the whole receiver for 8a: start the CAF receiver context, declare the
-  custom namespace Thoth will use, and put the state on screen. It animates
-  nothing from a message yet; the motion on screen is Stress's own loop (8a's
-  device proof). The real payload - sequence number, schemaVersion, pattern
-  marker, thumbnails, events computed by the phone against the last-sent state -
-  is Phase 8b (SRD Phase 8, Gap 2).
+  Starts the CAF receiver context, registers the custom namespace, and hands every message
+  to Messages, which is the same module the desktop replay harness drives. What arrives is
+  reported on the state panel; the board itself is Phase 8c, and nothing here draws one yet.
 
-  ES5 only, for the 2013 Chromecast. See stress.js.
+  ES2015 is allowed (Chrome 70 on the device, measured in 8a); stress.js stays as it is,
+  since it is ES5 and already proved on the dongle.
 */
 
 (function () {
   'use strict';
 
-  var VERSION = 'v0';
-  var NAMESPACE = 'urn:x-cast:io.github.renomike.scores';
+  const VERSION = 'v0.2';
+  const NAMESPACE = 'urn:x-cast:io.github.renomike.scores';
 
-  var senders = 0;
-  var messages = 0;
-  var lastMessage = '-';
+  let senders = 0;
+  let received = 0;
 
   function set(id, text, cls) {
-    var node = document.getElementById(id);
-    if (!node) { return; }
+    const node = document.getElementById(id);
+    if (!node) return;
     node.firstChild.nodeValue = text;
-    if (cls !== undefined) { node.className = 'v ' + cls; }
+    if (cls !== undefined) node.className = 'v ' + cls;
   }
 
+  /*
+    The user agent is on screen on purpose: it is the only evidence of which Chromecast
+    loaded the page and how old its browser is, and the whole motion budget is set from it
+    (SRD Phase 8, "The browser is Chrome 70").
+  */
   function describeDevice() {
-    /* The user agent is the one reliable way to tell which Chromecast loaded the
-       page, and it is on screen on purpose: 8a has to confirm the device is the
-       H2G2-42 and record how old its engine is. */
     set('dUa', navigator.userAgent || 'unknown');
     set('dScreen', window.innerWidth + ' x ' + window.innerHeight
       + ' css px, dpr ' + (window.devicePixelRatio || 1));
   }
 
-  function startStress() {
-    Stress.start();
-    set('sBudget', Stress.budget.rows + ' rows, ' + Stress.budget.confetti
-      + ' confetti, motion ends at ' + Stress.budget.motionEndMs + ' ms');
-  }
+  const messages = Messages.create({
+    onState: function (state, events, sequence) {
+      received++;
+      set('cMessages', String(received));
+      set('cSequence', String(sequence));
+      set('cBoard', state.competitors.length + ' rows, round ' + state.round
+        + ', ' + state.status);
+      set('cEvents', events.length === 0
+        ? 'none (full state)'
+        : events.map(function (e) { return e.type; }).join(', '));
+      const counts = messages.counts();
+      set('cDropped', counts.ignored + ' out of order, ' + counts.rejected + ' rejected');
+    },
+    onThumbnail: function () {
+      set('cThumbs', String(messages.thumbnailCount()));
+    },
+    onUnsupported: function (version) {
+      set('cSchema', 'sender sent v' + version + ', this page speaks v'
+        + Messages.SCHEMA_VERSION, 'bad');
+    }
+  });
 
   function onMessage(event) {
-    messages++;
-    var data = event.data;
-    var text;
-    try {
-      text = (typeof data === 'string') ? data : JSON.stringify(data);
-    } catch (e) {
-      text = '[unserialisable]';
+    let payload = event.data;
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload);
+      } catch (e) {
+        set('cDropped', 'unparseable message', 'bad');
+        return;
+      }
     }
-    if (text.length > 120) { text = text.substring(0, 117) + '...'; }
-    lastMessage = text;
-    set('cMessages', String(messages));
-    set('cLast', lastMessage);
+    messages.accept(payload);
   }
 
   function startReceiver() {
     if (typeof cast === 'undefined' || !cast.framework) {
-      /* Opened in an ordinary browser, or the gstatic script did not load. The
-         stress loop still runs, which is how stress.html is driven on a desktop. */
+      /* An ordinary browser, or the gstatic script did not load. stress.html runs here. */
       set('cSdk', 'not loaded (not in a Cast session)', 'warn');
       set('cState', 'standalone', 'warn');
       return;
     }
     set('cSdk', 'loaded', 'ok');
 
-    var context = cast.framework.CastReceiverContext.getInstance();
-    var options = new cast.framework.CastReceiverOptions();
+    const context = cast.framework.CastReceiverContext.getInstance();
+    const options = new cast.framework.CastReceiverOptions();
 
-    /* A non-media app: no player libraries are loaded, and the receiver must not
-       be torn down for being idle, because Thoth sends nothing between scores. */
+    /* A non-media app: no player libraries, and never torn down for being idle, because
+       Thoth sends nothing between scores. The dim "waiting" screen and letting the timeout
+       close it is Phase 8e. */
     options.disableIdleTimeout = true;
     options.skipPlayersLoad = true;
     options.statusText = 'Thoth - Keeper of Scores';
@@ -81,7 +94,7 @@
 
     context.addCustomMessageListener(NAMESPACE, onMessage);
 
-    var sys = cast.framework.system.EventType;
+    const sys = cast.framework.system.EventType;
     context.addEventListener(sys.READY, function () {
       set('cState', 'ready', 'ok');
     });
@@ -91,8 +104,7 @@
       set('cLastSender', (e && e.senderId) ? e.senderId : '-');
     });
     context.addEventListener(sys.SENDER_DISCONNECTED, function (e) {
-      senders--;
-      if (senders < 0) { senders = 0; }
+      senders = Math.max(0, senders - 1);
       set('cSenders', String(senders));
       set('cLastSender', (e && e.senderId ? e.senderId : '-') + ' (gone)');
     });
@@ -106,12 +118,32 @@
   }
 
   function main() {
-    Layout.render(document.body);
-    set('vVersion', VERSION);
+    const jank = Debug.enabled();
+    Layout.render(document.body, { jank: jank });
+    const subtitle = document.getElementById('subtitle');
+    if (subtitle) {
+      subtitle.innerHTML = '<span id="vVersion">' + VERSION + '</span> &middot; payload v'
+        + Messages.SCHEMA_VERSION + (jank ? ' &middot; frame times on' : '');
+    }
+    set('cSchema', 'v' + Messages.SCHEMA_VERSION, 'ok');
     describeDevice();
-    startStress();
-    /* The context is started after the page is drawn, so a failure in the Cast
-       SDK still leaves a readable screen on the TV rather than a blank one. */
+
+    /*
+      The motion stress loop is not what this page is for any more: from 8b index.html is
+      the receiver, and the board it will draw is Phase 8c. The loop still runs behind the
+      debug switch, because the Chromecast loads only the URL registered in the Cast console
+      and that is the one route to a motion measurement on the TV (see README).
+    */
+    if (jank) {
+      Stress.start();
+      set('sBudget', Stress.budget.rows + ' rows, ' + Stress.budget.confetti
+        + ' confetti, motion ends at ' + Stress.budget.motionEndMs + ' ms');
+    } else {
+      set('sBudget', 'stress loop off (add ?debug=1 to run it)');
+    }
+
+    /* The context is started after the page is drawn, so a failure in the Cast SDK still
+       leaves a readable screen on the TV rather than a blank one. */
     try {
       startReceiver();
     } catch (e) {
