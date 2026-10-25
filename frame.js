@@ -45,6 +45,7 @@
         again.sequence = boot.messages.lastSequence() + 1;
         boot.messages.accept(again);
       }
+      publishBoxes();
       document.title = 'thoth-feed-' + count;
       document.body.setAttribute('data-ready', 'true');
     };
@@ -52,6 +53,64 @@
       document.title = 'feed.json could not be loaded - serve over HTTP';
     };
     request.send();
+  }
+
+  /*
+    Writes the on-screen box of each thing that has a readability floor into the page, so the
+    measuring script can crop exactly that box and read the ink height out of the pixels.
+
+    The browser supplies the boxes and the pixels supply the heights: neither is taken on
+    trust from the stylesheet, which is how the 7% floor was missed in 8c's first draft.
+  */
+  function publishBoxes() {
+    var wanted = {
+      safe: '#safe',
+      board: '#board',
+      title: '#bgame',
+      round: '#bround',
+      rank: '.bcol .brow .brank',
+      name: '.bcol .brow .bname',
+      total: '.bcol .brow .btotal',
+      avatar: '.bcol .brow .bavatar'
+    };
+    var boxes = {};
+    function record(key, node) {
+      if (!node) return;
+      var r = node.getBoundingClientRect();
+      boxes[key] = [Math.round(r.left), Math.round(r.top),
+        Math.round(r.width), Math.round(r.height)];
+    }
+    Object.keys(wanted).forEach(function (key) {
+      record(key, document.querySelector(wanted[key]));
+    });
+
+    /* The first gap that HAS text. On a board whose top two share rank 1, both leaders'
+       gaps are empty, and measuring one of those measured nothing. */
+    var gaps = document.querySelectorAll('.bcol .brow .bgap');
+    var i;
+    for (i = 0; i < gaps.length; i++) {
+      if ((gaps[i].textContent || '').length > 0) {
+        record('gap', gaps[i]);
+        break;
+      }
+    }
+
+    /* The first initials inside an avatar with no pattern over them. A pattern's marks sit
+       inside the same box and differ from the tone as much as a glyph does, so measuring
+       initials through one measures the pattern. */
+    var inits = document.querySelectorAll('.bcol .brow .binitials');
+    for (i = 0; i < inits.length; i++) {
+      var avatar = inits[i].parentNode;
+      if (avatar && !avatar.querySelector('svg.pat')) {
+        record('initials', inits[i]);
+        break;
+      }
+    }
+    var tag = document.createElement('script');
+    tag.type = 'application/json';
+    tag.id = 'measure-boxes';
+    tag.textContent = JSON.stringify(boxes);
+    document.body.appendChild(tag);
   }
 
   function main() {
@@ -98,6 +157,7 @@
       if (file.thumbnail && wanted === 'photo') boot.messages.accept(file.thumbnail);
       boot.messages.accept(message);
 
+      publishBoxes();
       document.title = 'thoth-' + wanted;
       document.body.setAttribute('data-ready', 'true');
     };

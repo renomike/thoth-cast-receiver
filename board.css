@@ -68,9 +68,13 @@
   padding: 3px;
 }
 
+/*
+  Overlapping, but less than on the phone: at a quarter back the second initial of the
+  avatar underneath was clipped, and on a TV across a room a half-shown "MI" is not a name
+  (8c closing item 5). The ring is what carries the grouping anyway.
+*/
 .bavatars.bteam .bavatar:not(:first-child) {
-  /* Overlapping, as on the phone: a quarter of an avatar back. */
-  margin-left: -0.25em;
+  margin-left: -0.16em;
 }
 
 /*
@@ -134,7 +138,9 @@
   text-align: right;
   color: #BFAF90;
   white-space: nowrap;
-  margin-right: calc(0.9 * var(--vw));
+  /* Air between the gap and the total. In the two-column tier the gap is a signed number
+     and sat close enough to the total to read as one figure ("-49 49"). */
+  margin-right: calc(1.5 * var(--vw));
 }
 
 /*
@@ -144,7 +150,13 @@
 .btotal {
   flex: 0 0 auto;
   font-weight: 700;
-  font-family: "Roboto Mono", Consolas, monospace;
+  /*
+    The same face as everything else, with tabular figures so the digits line up down the
+    column. It drew in a monospace fallback before, which is how the frames ended up with
+    two different faces in them.
+  */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
   color: #F3EAD3;
   white-space: nowrap;
   line-height: 1;
@@ -159,8 +171,8 @@
 }
 
 #bgame {
-  font-size: calc(4 * var(--vh));
-  font-weight: 700;
+  font-family: "Marcellus", Georgia, serif;
+  font-weight: 400;
   color: #E3B955;
   white-space: nowrap;
   overflow: hidden;
@@ -169,7 +181,6 @@
 
 #bround {
   margin-left: calc(1.4 * var(--vw));
-  font-size: calc(2.4 * var(--vh));
   color: #BFAF90;
   white-space: nowrap;
 }

@@ -9,6 +9,31 @@
   here animates width, height, top, left, margin or colour.
 */
 
+/*
+  The app's own faces, served from this repository (8c closing item 1). The frames were
+  previously drawn in whatever the rendering machine fell back to - a bold sans in one and a
+  slashed-zero monospace in another - so nothing measured on them described what the
+  Chromecast draws. See fonts/README.md.
+
+  font-display: block, not swap: a board that redraws at a different size a moment after it
+  appears is worse on a TV than one that appears a moment later.
+*/
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("fonts/source-sans-3.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Marcellus";
+  src: url("fonts/marcellus.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -25,9 +50,14 @@ body {
      The scoreboard is always dark (NFR-05, SRD 8.1). */
   background: #1C1611;
   color: #F3EAD3;
-  /* Self-hosted only: no web font is loaded. These are the fonts already on
-     the device, so nothing is fetched and nothing can fail to arrive. */
-  font-family: Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /*
+    So #frame, which is absolutely positioned, resolves its 100% height against the body and
+    not against the viewport. On the TV the two are the same; on a page that fixes the body
+    at 1280 x 720 to take a frame they are not, and the frame came out 625 px tall - which
+    made every measurement taken on it 13% small.
+  */
+  position: relative;
+  font-family: "Source Sans 3", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 /* 5% title-safe margin on all four sides (SRD Phase 8, legibility). The guide

@@ -58,13 +58,19 @@ var Boot = (function () {
       var state = messages.currentState();
       if (!state) return;
       Board.draw(state);
+      /* The header is sized here, in the same frame-relative units as the board. */
+      var unit = (document.getElementById('frame') || document.body).clientHeight / 100;
       var gameName = document.getElementById('bgame');
       var round = document.getElementById('bround');
-      if (gameName) gameName.textContent = state.displayName || '—';
+      if (gameName) {
+        gameName.textContent = state.displayName || '—';
+        gameName.style.fontSize = Math.round(Board.head.titlePct * unit) + 'px';
+      }
       if (round) {
         round.textContent = state.status === 'ACTIVE'
           ? 'Round ' + state.round
           : (state.status === 'FINISHED' ? 'Final' : 'Abandoned');
+        round.style.fontSize = Math.round(Board.head.roundPct * unit) + 'px';
       }
     }
 

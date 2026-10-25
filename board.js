@@ -35,6 +35,14 @@ var Board = (function () {
     deletedPlayer: 'Deleted player',
     deletedPlayerNumbered: function (n) { return 'Deleted player ' + n; },
     behindLeader: function (gap) { return gap + ' behind'; },
+    /*
+      The two-column tier's shorter form. RNK-04's own convention - the gap is stored
+      unsigned and "the minus sign RNK-04 shows is added at display time" - so this is not a
+      new wording, it is the same figure written the way the requirement writes it. It buys
+      about 55 px per row, which is what lets "Konstantina A" and "Konstantina V" show in
+      full at twelve competitors instead of both truncating to "Konstantin...".
+    */
+    behindShort: function (gap) { return '−' + gap; },
     behindBoth: function (gap, toNext, rank) {
       return gap + ' behind · ' + toNext + ' to ' + rank;
     },
@@ -45,37 +53,72 @@ var Board = (function () {
     Two sets of sizes, chosen by how many rows have to fit, as on the phone. Every figure is
     a percentage of the frame's height, so the board is the same shape whatever draws it.
   */
+  /*
+    Sizes by competitor count, in tiers, as the phone does (8c closing items 3 and 4).
+
+    Every figure is a **font size** as a percentage of the frame's height. The floors the SRD
+    sets are **ink** heights - the tallest glyph in the line - and a font size is not an ink
+    height. Measured off this face (Source Sans 3, the app's own): digits ink to 0.664 of the
+    font size, capitals to 0.660, ascenders to 0.734. So a 7.2% digit needs an 11.0% font,
+    and a 3.2% name needs a 5.0% one. The frames in docs/screenshots/phase-8c carry the
+    measurement, and the first version of this - which set the font to the floor and drew a
+    4.4% digit - is why they are measured and not assumed.
+
+    Floors satisfied here, as a share of the 720 px frame:
+
+      totals  >= 7.2%   name >= 3.2% (4.5% at four or fewer)   gap >= 2.2% (3% at four or
+      fewer)   initials >= 2.5%   title and round >= 2.5%   avatars about 8% (11% at four or
+      fewer)
+  */
   var METRICS = {
+    /* Four or fewer: the rows are tall, so the content is too. */
     few: {
       columns: 1,
-      /*
-        A font size is not a digit height. Measured off the rendered frame, this face inks
-        its digits to about 0.59 of the font size, so the 7% (50 px) floor the SRD sets for
-        20 feet needs about 12% of the frame in font size, not 7%. The frames in
-        docs/screenshots/phase-8c carry the measurement.
-      */
-      totalPct: 12.6,
-      namePct: 4.0,
-      rankPct: 3.8,
-      gapPct: 2.1,
-      avatarPct: 6.5,
-      rankWidthPct: 4.5,
-      nameChars: 20,
+      totalPct: 11.2,
+      namePct: 6.9,
+      rankPct: 5.5,
+      gapPct: 4.6,
+      avatarPct: 11.0,
+      rankWidthPct: 5.0,
+      nameChars: 44,
       showsPlaceAbove: true
     },
+    /* Five or six: one column still, at the ordinary floors. */
+    mid: {
+      columns: 1,
+      totalPct: 11.2,
+      namePct: 5.0,
+      rankPct: 4.2,
+      gapPct: 3.4,
+      avatarPct: 8.0,
+      rankWidthPct: 4.2,
+      nameChars: 38,
+      showsPlaceAbove: true
+    },
+    /* Seven and up: two columns, and the place-above gap is dropped to buy the room, as on
+       the phone. */
     many: {
       columns: 2,
-      /* The same floor at twelve: two columns of six leave the same row height. */
-      totalPct: 12.6,
-      namePct: 3.0,
-      rankPct: 2.8,
-      gapPct: 1.8,
-      avatarPct: 5.0,
-      rankWidthPct: 3.6,
-      nameChars: 14,
-      showsPlaceAbove: false
+      totalPct: 11.2,
+      namePct: 5.0,
+      rankPct: 4.0,
+      gapPct: 3.4,
+      avatarPct: 8.0,
+      rankWidthPct: 4.0,
+      nameChars: 24,
+      showsPlaceAbove: false,
+      shortGap: true
     }
   };
+
+  /* The header, in the same units. Marcellus inks its capitals to 0.700 of the font size. */
+  var HEAD = { titlePct: 5.5, roundPct: 3.9 };
+
+  function metricsFor(count) {
+    if (count <= 4) return METRICS.few;
+    if (count <= ONE_COLUMN_LIMIT) return METRICS.mid;
+    return METRICS.many;
+  }
 
   var theme = null;
   var thumbnailFor = function () { return null; };
@@ -306,7 +349,14 @@ var Board = (function () {
       cells.avatars.style.marginRight = '0';
     }
 
-    cells.name.firstChild.nodeValue = truncate(competitor.name, metrics.nameChars);
+    /*
+      The label the phone computed, falling back to the name when an older payload does not
+      carry one. The truncation is only a safety net now: the label is already as short as
+      TeamNames.forGame could make it while keeping competitors apart, and re-shortening it
+      here is what made eight rows read "Konstantina P..." (8c closing item 2).
+    */
+    var label = competitor.displayLabel || competitor.name;
+    cells.name.firstChild.nodeValue = truncate(label, metrics.nameChars);
     cells.total.firstChild.nodeValue = formatScore(competitor.total, state.decimalPlaces);
 
     /*
@@ -324,6 +374,8 @@ var Board = (function () {
         gapText = STRINGS.behindBoth(
           behind, formatScore(above, state.decimalPlaces), rankAbove
         );
+      } else if (metrics.shortGap) {
+        gapText = STRINGS.behindShort(behind);
       } else {
         gapText = STRINGS.behindLeader(behind);
       }
@@ -336,7 +388,7 @@ var Board = (function () {
   function draw(state) {
     if (!root || !state) return;
     var rows = state.competitors || [];
-    var metrics = rows.length <= ONE_COLUMN_LIMIT ? METRICS.few : METRICS.many;
+    var metrics = metricsFor(rows.length);
     var frameHeight = (frame && frame.clientHeight > 0) ? frame.clientHeight : 720;
     var unit = frameHeight / 100;
 
@@ -389,9 +441,8 @@ var Board = (function () {
   return {
     configure: configure,
     draw: draw,
-    metricsFor: function (count) {
-      return count <= ONE_COLUMN_LIMIT ? METRICS.few : METRICS.many;
-    },
+    metricsFor: metricsFor,
+    head: HEAD,
     formatScore: formatScore,
     truncate: truncate
   };
